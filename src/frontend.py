@@ -2,6 +2,8 @@ import streamlit as st
 import uuid
 from datetime import datetime
 import correction
+from templates.template import templates
+
 
 data=[]
 
@@ -24,8 +26,27 @@ def main():
         if st.button("Neue Sitzung starten"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
-            st.experimental_rerun()
+            st.rerun()
     
+
+
+     # Dropdown für Vorlagen
+    st.header("Vorlagen")
+    selected_template = st.selectbox(
+        "Vorlage auswählen",
+        options=list(templates.keys()),
+        key="selected_template"
+    )
+    
+    # Anwenden-Button für die Vorlage
+    if st.button("Vorlage anwenden"):
+        if selected_template != "Auswählen...":
+            st.session_state.korrekturanweisung = templates[selected_template]["korrektur"]
+            st.session_state.arbeitsanweisung = templates[selected_template]["arbeitsanweisung"]
+            st.session_state.file_data["template"] = templates[selected_template]["template"]
+            st.rerun()
+    
+
     # R-1: Textfeld für Korrekturanweisung
     st.header("Korrekturanweisung")
     korrekturanweisung = st.text_area(
@@ -75,8 +96,8 @@ def main():
         file=uploaded_template      
         st.session_state.file_data["template"]=file.read().decode("utf-8")
         # Dateizeiger zurücksetzen für weitere Operationen        
-        # Zeige Dateiinformationen an      
-
+        # Zeige Dateiinformationen an
+    
     # Verarbeite und speichere hochgeladene Dateien
     if uploaded_files:
         st.write(f"{len(uploaded_files)} Datei(en) hochgeladen:")       
@@ -113,18 +134,22 @@ def main():
         if filename.endswith(".txt"):
             if not filename in st.session_state.file_data["text"]:
                 st.session_state.file_data["text"][filename]= st.session_state.file_data["upload"][filename]["content"]              
-    
+       
+
     # R-5: Textfeld für Bewertung
     st.header("Bewertung")
     bewertung = st.text_area(
         label="",
-        height=300,  # Ungefähr 50 Zeilen
-        max_chars=80*50,  # Max. 80x50 Zeichen
+        height=300,  # Ungefähr 50 Zeilen      
+        max_chars=160*50,  # Max. 80x50 Zeichen
         placeholder="Hier erscheint die Bewertung...",
         value=st.session_state.bewertung,
         key="bewertung_input"
     )
-    
+
+    if st.session_state.bewertung:
+        st.markdown(st.session_state.bewertung, unsafe_allow_html=True)
+
     # Buttons in einer Zeile anordnen
     col1, col2, col3 = st.columns(3)
     
@@ -152,7 +177,7 @@ def main():
             st.download_button(
                 label="Bewertung herunterladen",
                 data=st.session_state.bewertung,
-                file_name=f"bewertung_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                file_name=f"bewertung_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
                 mime="text/html"
             )
     
