@@ -44,7 +44,7 @@ Use the template here:
 """
 # at the end and fit it to the number of input TEXT's. 
 
-aufgaben_context="""
+task_context="""
 Language is british english. The children have been learning english for half a year. Consider this for the justification.
 
 
@@ -82,6 +82,7 @@ def run_correction(template, list_of_files:dict, system_context, task_context):
     prompt_template=ChatPromptTemplate.from_messages(messages=messages)      
     user_input= {"exam_text": exam_text, "target_language": "English"}
     # Use the formatted prompt with the model
+    model=None
     if not model:
         model = ChatGroq(model=MODEL_NAME, api_key=os.getenv("GROQ_API_KEY"), temperature=0.0)
     chain = prompt_template | model

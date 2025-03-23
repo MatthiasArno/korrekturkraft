@@ -1,6 +1,7 @@
 import streamlit as st
 import uuid
 from datetime import datetime
+import correction
 
 data=[]
 
@@ -31,7 +32,7 @@ def main():
         label="",
         height=300,  # Ungefähr 50 Zeilen
         max_chars=80*50,  # Max. 80x50 Zeichen
-        placeholder="Geben Sie hier Ihre Korrekturanweisung ein...",
+        placeholder="Bitte hier die Korrekturanweisung hinterlegen", # correction.system_context,
         key="korrekturanweisung"  # Key zum Speichern im Session State
     )
     
@@ -41,14 +42,14 @@ def main():
         label="",
         height=300,  # Ungefähr 50 Zeilen
         max_chars=80*50,  # Max. 80x50 Zeichen
-        placeholder="Geben Sie hier Ihre Arbeitsanweisung ein...",
+        placeholder="Bitte hier die Aufgabenbeschreibung hinterlegen", # correction.task_context,
         key="arbeitsanweisung"  # Key zum Speichern im Session State
     )
         
     # R-3 & R-4: File Picker und Upload-Button
     st.header("Datei-Upload")
     uploaded_files = st.file_uploader(
-        label="Dateien auswählen",
+        label="Dateien auswählen. Aktuell nur .txt Format.",
         type=None,  # Alle Dateitypen erlauben
         accept_multiple_files=True,
         key="uploaded_files"  # Key zum Speichern im Session State
@@ -56,12 +57,11 @@ def main():
 
     st.header("Template-Upload")
     uploaded_template = st.file_uploader(
-        label="Datei auswählen",
-        type="html",  # Alle Dateitypen erlauben
+        label="Datei auswählen. Aktuell nur .html Format.",
+        type="html",
         accept_multiple_files=False,
         key="uploaded_template"  # Key zum Speichern im Session State
     )
-
 
     if "upload" not in st.session_state.file_data:
         st.session_state.file_data["upload"]=dict()
@@ -72,18 +72,10 @@ def main():
 
 
     if uploaded_template:     
-        file=uploaded_template
-        file_bytes = file.read()
-        st.session_state.file_data["template"][file.name] = {
-            'content': file_bytes,
-            'size': file.size,
-            'type': file.type,
-            'uploaded_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        # Dateizeiger zurücksetzen für weitere Operationen
-        file.seek(0)        
-        # Zeige Dateiinformationen an
-        st.write(f"- {file.name} ({file.size} Bytes)")
+        file=uploaded_template      
+        st.session_state.file_data["template"]=file.read().decode("utf-8")
+        # Dateizeiger zurücksetzen für weitere Operationen        
+        # Zeige Dateiinformationen an      
 
     # Verarbeite und speichere hochgeladene Dateien
     if uploaded_files:
@@ -144,15 +136,13 @@ def main():
             if st.session_state.korrekturanweisung and st.session_state.arbeitsanweisung:
                 # Verarbeite die Eingaben und erstelle eine Bewertung
                 num_files = len(st.session_state.file_data)
-                st.session_state.bewertung = f"""Bewertung erstellt am {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-                
-Anzahl verarbeiteter Dateien: {num_files}
-Länge der Korrekturanweisung: {len(st.session_state.korrekturanweisung)} Zeichen
-Länge der Arbeitsanweisung: {len(st.session_state.arbeitsanweisung)} Zeichen
-
-Beispiel-Bewertung nach der Korrektur...
-"""
-                st.experimental_rerun()
+                st.session_state.bewertung = correction.run_correction(
+                        st.session_state.file_data["template"],
+                        dict([(key, value["content"].decode("utf-8")) for key, value in st.session_state.file_data["upload"].items()]),
+                        st.session_state.korrekturanweisung,
+                        st.session_state.arbeitsanweisung
+                )
+                st.rerun()
             else:
                 st.error("Bitte fülle Korrekturanweisung und Arbeitsanweisung aus.")
     
@@ -163,7 +153,7 @@ Beispiel-Bewertung nach der Korrektur...
                 label="Bewertung herunterladen",
                 data=st.session_state.bewertung,
                 file_name=f"bewertung_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                mime="text/plain"
+                mime="text/html"
             )
     
     # Sitzungsverwaltung
