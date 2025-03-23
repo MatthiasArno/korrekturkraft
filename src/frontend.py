@@ -1,92 +1,72 @@
-# See: https://docs.streamlit.io/develop/api-reference
-
-# To view the results, open F1-"Simple Browse".
-# Start the Webserver according to the output when running first time via debugger.
-# In Settings, select "rerun on save".
-
-#%% packages
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv(usecwd=True))
-from pydantic import BaseModel
-from langchain_core.output_parsers import SimpleJsonOutputParser
-from langchain_core.output_parsers import StrOutputParser
-from pull_image import download_multiple_recipe_images
-
-#%% Idea: 
-
-# output
-# { "recipe_name": "...", "ingredients": [{"name": "...", "quantity": ...}], "steps": []}
-
-
-#%% define output format
-class RecipeOutput(BaseModel):
-    recipe_name: str
-    ingredients: list[dict[str, str]]  # Change float to str for quantity
-    steps: list[str]
-
-    
-# %% prompt template
-messages = [
-    ("system", "You are a recipe expert and deliver key information on specific recipes."),
-    ("user", "Please provide key information on the recipe <<{recipe}>>. First translate everything into {language}. Return the result as JSON with the keys recipe_name, ingredients as list of dicts with keys name and quantity, steps as list of strings.")
-]
-
-prompt_template = ChatPromptTemplate.from_messages(messages=messages)
-prompt_template
-
-#%% model via Groq
-MODEL_NAME = "llama3-8b-8192"
-model = ChatGroq(model=MODEL_NAME)
-
-#%% Chain definition
-chain = prompt_template | model | StrOutputParser()| SimpleJsonOutputParser(pydantic_object=RecipeOutput)
-
-#%% inference
-# input_text = """
-# Her er en opskrift på Spaghetti Carbonara:
-# Du skal bruge 200 g spaghetti, 100 g bacon, 2 æg, 50 g parmesan og lidt peber.
-# Kog spaghetti, steg bacon, bland æg og ost, og bland det hele med de varme nudler.
-# """
-# user_input = {"recipe": input_text, "language": "English"}
-# res = chain.invoke(user_input)
-# #%%
-# res
-# %%
-
 import streamlit as st
-from dotenv import load_dotenv, find_dotenv
 
-st.title("Creative Dinning")
-
-recipe_text=st.text_area(label="description", value="please add your recipe")
-#recipe_text="300g Spaghetti, 500ml Tomate Sauce. Steps: cook the Spaghetti, mix with Sauce."
-
-#st.button("Analyze", type="primary")
-if st.button("Analyze",type="primary"):
-    user_input = {"recipe": recipe_text, "language": "English"}
-    res = chain.invoke(user_input)
-    st.header(res["recipe_name"])
-    col_left, col_right, col_edge=st.columns(3)
-
-    results = download_multiple_recipe_images([res["recipe_name"]])
-
-    with col_left:
-        ingredients=res["ingredients"]
-        count_ingredients=len(ingredients)
-        st.subheader("Ingedients")
-        for i in range(count_ingredients):
-            st.write(f"name: {ingredients[i]['name']}, Quantity: {ingredients[i]['quantity']}")
-    with col_right:
-        st.subheader("Steps")
-        st.write(res["steps"])
-    with col_edge:
-        st.subheader("hmm...")
-        for recipe, path in results.items():
-            st.image(path, caption='Optional image caption', use_column_width=True)
+def main():
+    st.title("Korrektur-HMI")
     
-#	st.write("description", "ok,fried")
+    # R-1: Textfeld für Korrekturanweisung
+    st.header("Korrekturanweisung")
+    korrekturanweisung = st.text_area(
+        label="",
+        height=300,  # Ungefähr 50 Zeilen
+        max_chars=80*50,  # Max. 80x50 Zeichen
+        placeholder="Geben Sie hier Ihre Korrekturanweisung ein..."
+    )
+    
+    # R-2: Textfeld für Arbeitsanweisung
+    st.header("Arbeitsanweisung")
+    arbeitsanweisung = st.text_area(
+        label="",
+        height=300,  # Ungefähr 50 Zeilen
+        max_chars=80*50,  # Max. 80x50 Zeichen
+        placeholder="Geben Sie hier Ihre Arbeitsanweisung ein..."
+    )
+    
+    # R-3 & R-4: File Picker und Upload-Button
+    st.header("Datei-Upload")
+    uploaded_files = st.file_uploader(
+        label="Dateien auswählen",
+        type=None,  # Alle Dateitypen erlauben
+        accept_multiple_files=True
+    )
+    
+    # Anzeige der hochgeladenen Dateien
+    if uploaded_files:
+        st.write(f"{len(uploaded_files)} Datei(en) hochgeladen:")
+        for file in uploaded_files:
+            st.write(f"- {file.name} ({file.size} Bytes)")
+    
+    # R-5: Textfeld für Bewertung
+    st.header("Bewertung")
+    bewertung = st.text_area(
+        label="",
+        height=300,  # Ungefähr 50 Zeilen
+        max_chars=80*50,  # Max. 80x50 Zeichen
+        placeholder="Hier erscheint die Bewertung..."
+    )
+    
+    # Buttons in einer Zeile anordnen
+    col1, col2, col3 = st.columns(3)
+    
+    # R-6: Button "Korrektur starten"
+    with col1:
+        if st.button("Korrektur starten", type="primary"):
+            # Hier kommt die Logik für die Korrektur
+            st.session_state.bewertung = "Beispiel-Bewertung nach der Korrektur..."
+            st.experimental_rerun()
+    
+    # R-7: Download-Button für Bewertung
+    with col2:
+        if bewertung:
+            st.download_button(
+                label="Bewertung herunterladen",
+                data=bewertung,
+                file_name="bewertung.txt",
+                mime="text/plain"
+            )
 
-
-
+if __name__ == "__main__":
+    # Session State für persistente Daten initialisieren
+    if 'bewertung' not in st.session_state:
+        st.session_state.bewertung = ""
+        
+    main()
