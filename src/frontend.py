@@ -19,14 +19,39 @@ def main():
     if 'start_time' not in st.session_state:
         st.session_state.start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    st.title("Korrektur-HMI")
-    with st.expander("Sitzungsinfo", expanded=False):
-        st.write(f"Sitzungs-ID: {session_id}")
-        st.write(f"Gestartet: {st.session_state.start_time}")
-        if st.button("Neue Sitzung starten"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+    st.title("Korrekturkraft für Lehrer und Schüler")
+
+    with st.expander("Beschreibung", expanded=False):
+        st.markdown(
+    """Diese App dient als automatisiertes Korrektur- und Bewertungssystem.
+    Sie ermöglicht es Nutzern, Korrekturanweisungen und Arbeitsanweisungen einzugeben,
+    die zur Bewertung von hochgeladenen Dokumenten verwendet werden.
+    Nutzer können aus vordefinierten Templates wählen oder eigene Anweisungen erstellen,
+    Dateien hochladen und dann die Korrektur starten. Das Programm generiert daraufhin eine formatierte HTML-Bewertung,
+    die direkt in der App angezeigt und als HTML-Datei heruntergeladen werden kann. 
+    Dies ist besonders nützlich für Lehrkräfte, Korrektoren oder in Workflows,
+    bei denen standardisierte Dokumentenbewertungen nach bestimmten Kriterien durchgeführt werden müssen.    
+    Zur Veranschaulichung bitte eine Vorlage benutzen; hiermit wird auch ein Ausgabe HTML Template geladen.
+    """
+    )
+    
+    with st.expander("Rechtliche Hinweise", expanded=False):
+        st.markdown("""
+        **Disclaimer:** Diese Anwendung dient ausschließlich zu Demonstrations- und Bildungszwecken. 
+        Die generierten Bewertungen und Korrekturen erheben keinen Anspruch auf Vollständigkeit oder Richtigkeit. 
+        Für die Richtigkeit der Ergebnisse wird keine Haftung übernommen.
+        Achten Sie darauf, Daten nur anonymisiert hochzuladen!
+        """)
+        
+    # with st.expander("Sitzungsinfo", expanded=False):
+    #     st.write(f"Sitzungs-ID: {session_id}")
+    #     st.write(f"Gestartet: {st.session_state.start_time}")
+    #     if st.button("Neue Sitzung starten"):
+    #         for key in list(st.session_state.keys()):
+    #             del st.session_state[key]
+    #         st.rerun()
+
+    
     
 
 
@@ -44,6 +69,7 @@ def main():
             st.session_state.korrekturanweisung = templates[selected_template]["korrektur"]
             st.session_state.arbeitsanweisung = templates[selected_template]["arbeitsanweisung"]
             st.session_state.file_data["template"] = templates[selected_template]["template"]
+            #uploaded_template=st.file_uploader(label=selected_template)
             st.rerun()
     
 
@@ -70,7 +96,7 @@ def main():
     # R-3 & R-4: File Picker und Upload-Button
     st.header("Datei-Upload")
     uploaded_files = st.file_uploader(
-        label="Dateien auswählen. Aktuell nur .txt Format.",
+        label="Dateien auswählen. Jede Arbeit muss in einer Datei gespeichert sein. Persönliche Daten vorher unbedingt entfernen! Aktuell nur .txt Format.",
         type=None,  # Alle Dateitypen erlauben
         accept_multiple_files=True,
         key="uploaded_files"  # Key zum Speichern im Session State
@@ -78,7 +104,7 @@ def main():
 
     st.header("Template-Upload")
     uploaded_template = st.file_uploader(
-        label="Datei auswählen. Aktuell nur .html Format.",
+        label="Datei auswählen. Diese Datei dient als Vorlage für das Ausgabeformat. Aktuell nur .html Format.",
         type="html",
         accept_multiple_files=False,
         key="uploaded_template"  # Key zum Speichern im Session State
